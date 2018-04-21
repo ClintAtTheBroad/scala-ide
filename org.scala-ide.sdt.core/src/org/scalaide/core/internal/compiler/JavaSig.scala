@@ -1,6 +1,7 @@
 package org.scalaide.core.internal.compiler
 
 import org.scalaide.core.compiler.IScalaPresentationCompiler.Implicits._
+import scala.tools.nsc.transform.Erasure
 
 trait JavaSig { pc: ScalaPresentationCompiler =>
 
@@ -53,12 +54,18 @@ trait JavaSig { pc: ScalaPresentationCompiler =>
     // see scala/scala commit e5ea3ab
     private val markClassUsed: Symbol => Unit = _ => ()
 
+    private val erasureNeedsJavaSig = {
+      val m = classOf[Erasure].getMethod("needsJavaSig", classOf[Type], classOf[List[_]])
+      m.setAccessible(true)
+      m
+    }
+
     private lazy val sig: Option[String] = {
       // make sure to execute this call in the presentation compiler's thread
       pc.asyncExec {
         def needsJavaSig: Boolean = {
           // there is no need to generate the generic type information for local symbols
-          !symbol.isLocalToBlock && erasure.needsJavaSig(symbol.info, throwsArgs = Nil)
+          !symbol.isLocalToBlock && erasureNeedsJavaSig.invoke(erasure, symbol.info, Nil).asInstanceOf[Boolean]
         }
 
         if (needsJavaSig) {
