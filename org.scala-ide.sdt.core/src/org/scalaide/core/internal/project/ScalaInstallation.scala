@@ -31,6 +31,7 @@ import org.scalaide.util.internal.CompilerUtils.isBinarySame
 import org.scalaide.util.internal.CompilerUtils.shortString
 
 import sbt.internal.inc.ScalaInstance
+import sbt.internal.inc.classpath.ClasspathUtilities
 
 sealed trait ScalaInstallationLabel extends Serializable
 case class BundledScalaInstallationLabel() extends ScalaInstallationLabel
@@ -311,8 +312,9 @@ object ScalaInstallation {
   def scalaInstanceForInstallation(si: IScalaInstallation): ScalaInstance = {
     val store = ScalaPlugin().classLoaderStore
     val scalaLoader: ClassLoader = store.getOrUpdate(si)(new URLClassLoader(si.allJars.map(_.classJar.toFile.toURI.toURL).toArray, ClassLoader.getSystemClassLoader))
+    val loaderLibraryOnly = ClasspathUtilities.rootLoader
 
-    new ScalaInstance(si.version.unparse, scalaLoader, si.library.classJar.toFile, si.compiler.classJar.toFile, si.extraJars.map(_.classJar.toFile).toArray, None)
+    new ScalaInstance(si.version.unparse, scalaLoader, loaderLibraryOnly, si.library.classJar.toFile, si.compiler.classJar.toFile, si.extraJars.map(_.classJar.toFile).toArray, None)
   }
 
   lazy val customInstallations: Set[LabeledScalaInstallation] = initialScalaInstallations.map(customize(_))(collection.breakOut)
